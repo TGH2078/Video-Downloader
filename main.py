@@ -80,7 +80,7 @@ i = sys.argv[1:]
 mf = False
 file = False
 if("--help" in i or "-h" in i):
-    print("Download a single file with [url output.mp4]\nDownload from a Download-List with [-f dllist.txt ./video-folder]")
+    print("Download a single file with [<url> <output-file>]\nDownload from a Download-List with [-f dllist.txt ./video-folder]")
     exit()
 for a in i:
     if(a=="-f"):
