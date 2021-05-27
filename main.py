@@ -70,8 +70,6 @@ def dlfile(file, folder):
         dllist = open(file).read().split("\n")
         for a in dllist:
             if(not a=="" and not a[0]=="#"):
-                n = a.split(", ")[0]
-                a.split(", ")[1]
                 downloadvideo(a.split(", ")[1], (folder+"/"+a.split(", ")[0]).replace("//", "/"))
     except KeyboardInterrupt:
         print("\033[2KKeyboardInterrupt")
