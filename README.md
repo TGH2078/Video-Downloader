@@ -10,9 +10,16 @@ Download files from a Download-List
 python3 main.py -f example-dllist.txt ./video-folder
 ```
 
+
+
 ### Supported platforms:
+
 vivo.sx
 
+
+
 ### Planning to add support for:
+
 sendfox.org
+
 youtube.com
