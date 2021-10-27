@@ -3,18 +3,36 @@ import re
 from urllib.parse import unquote
 import sys
 import time
+import os
 def dlvid(url, name, pl, si):
-    #print("")
     chunk_size = 1024*20
     count = 0
-    r = requests.get(url, stream=True, timeout=3)
-    size = int(r.headers['Content-length'])
-    with open(name, "wb") as f:
+    startb = 0
+    try:
+        fr = open(name+".part", "rb")
+        fw = open(name, "wb")
+        while(True):
+            t = fw.write(fr.read(chunk_size))
+            count += t
+            if(t==0):
+                startb = count
+                break
+    except:
+        fw = open(name, "wb")
+    try:
+        r = requests.get(url, stream=True, timeout=10, headers={"Range":"bytes="+str(startb)+"-"})
+        size = int(r.headers['Content-length'])+startb
         for chunk in r.iter_content(chunk_size=chunk_size):
-            #count += chunk_size
-            count += f.write(chunk)
+            count += fw.write(chunk)
             print("\033[1A" + name + " | " + "[" + "="*round(count/((int(size))/(si))) + ">" + " "*(si-round(count/((int(size))/(si)))) + "] " + ("   " + str(round(count/((int(size))/(100)))))[-3:] + "% | " + (" "*5 + str(round(((count/1024)/1024)*1000)/1000).split(".")[0] + "," + (str(round(((count/1024)/1024)*1000)/1000).split(".")[1] + "000")[0:3] + "/" + str(round(((size/1024)/1024)*1000)/1000).split(".")[0] + "," + (str(round(((size/1024)/1024)*1000)/1000).split(".")[1] + "000")[0:3])[-15:] + " MB | " + pl)
-        f.close()
+        fw.close()
+        try:
+            os.remove(name+".part")
+        except:
+            pass
+    except:
+        os.rename(name, name+".part")
+        1/0
 
 #=PLATFORMS=====================================================================
 def getvivo(url):
@@ -41,7 +59,7 @@ def getsendfox(url):
     return(t)
 #===============================================================================
 def getvideo(url):
-    if("vivo.sx" in url):
+    if("vivo.sx" in url or "vivo.st" in url):
         return(("OK", getvivo(url), "vivo.sx"))
     #elif("sendfox.org" in url):
     #    return(("OK", getsendfox(url), "sendfox.org"))
