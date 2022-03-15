@@ -15,4 +15,5 @@ python3 main.py -f example-dllist.txt ./video-folder
 ### Supported platforms:
 
 vivo.sx
+
 voe.sx
