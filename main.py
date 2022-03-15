@@ -4,6 +4,8 @@ from urllib.parse import unquote
 import sys
 import time
 import os
+import json
+import m3u8
 def dlvid(url, name, pl, si):
     chunk_size = 1024*20
     count = 0
@@ -34,6 +36,39 @@ def dlvid(url, name, pl, si):
         os.rename(name, name+".part")
         1/0
 
+def dlm3u8(url, name, pf, si):
+    m3upl = requests.get(url).text.split("\n")
+    pl = ""
+    for a in m3upl:
+        if("https://"in a):
+            pl = a
+            break
+    seg = requests.get(pl).text
+    segl = m3u8.loads(seg)
+    pl = []
+    urla = "/".join(url.split("/")[0:-1])
+    for a in segl.segments:
+        pl.append(urla+"/"+a.uri)
+
+    fw = open(name+".ts", "wb")
+
+    pcoun = 0
+    pllen = len(pl)
+    for a in pl:
+        chunk_size = 1024*20
+        count = 0
+        startb = 0
+        pcoun += 1
+        r = requests.get(a, stream=True, timeout=10, headers={"Range":"bytes="+str(startb)+"-"})
+        size = int(r.headers['Content-length'])+startb
+        for chunk in r.iter_content(chunk_size=chunk_size):
+            count += fw.write(chunk)
+            print("\033[1A" + name + " | " + "[" + "="*round(count/((int(size))/(si))) + ">" + " "*(si-round(count/((int(size))/(si)))) + "] " + " | " + ("   " + str(round(pcoun/((pllen)/(100)))))[-3:] + "% | " + str(pcoun)+"/"+str(pllen)+ " | " + pf)
+
+    fw.close()
+    print("\033[1A converting")
+    os.system(f"ffmpeg -i {name+'.ts'} {name} 2> /dev/null")
+    os.remove(name+".ts")
 #=PLATFORMS=====================================================================
 def getvivo(url):
     html = requests.get(url).text
@@ -57,12 +92,20 @@ def getsendfox(url):
     t = re.search("<textarea.*</textarea>", html).group()
     t = re.search(">.*<", t).group().replace("<", "").replace(">", "")
     return(t)
+
+def getvoe(url):
+    r = requests.get(url)
+    s = re.search("""constsources={"hls":.*};""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().split(";")[0].replace("constsources=", "").replace(",}", "}")
+    j = json.loads(s)
+    return(j["hls"])
 #===============================================================================
 def getvideo(url):
     if("vivo.sx" in url or "vivo.st" in url):
-        return(("OK", getvivo(url), "vivo.sx"))
+        return(("OK", getvivo(url), "vivo.sx", "mp4"))
     #elif("sendfox.org" in url):
     #    return(("OK", getsendfox(url), "sendfox.org"))
+    elif("voe.sx" in url):
+        return(("OK", getvoe(url), "voe.sx", "m3u8"))
     else:
         return(("ERR", "", ""))
 
@@ -74,7 +117,10 @@ def downloadvideo(url, output):
             if(stream[0]!="OK"):
                 print("\033[1A\033[2KError Dowloading " + url)
                 break
-            dlvid(stream[1], output, stream[2], 50)
+            if(stream[3]=="mp4"):
+                dlvid(stream[1], output, stream[2], 50)
+            elif(stream[3]=="m3u8"):
+                dlm3u8(stream[1], output, stream[2], 50)
             break
         except KeyboardInterrupt:
             print("\033[2KKeyboardInterrupt")
