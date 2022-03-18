@@ -64,11 +64,6 @@ def dlm3u8(url, name, pf, si):
         for chunk in r.iter_content(chunk_size=chunk_size):
             count += fw.write(chunk)
             print("\033[1A" + name + " | " + "[" + "="*round(count/((int(size))/(si))) + ">" + " "*(si-round(count/((int(size))/(si)))) + "] " + " | " + ("   " + str(round(pcoun/((pllen)/(100)))))[-3:] + "% | " + str(pcoun)+"/"+str(pllen)+ " | " + pf)
-
-    fw.close()
-    print("\033[1A converting")
-    os.system(f"ffmpeg -i {name+'.ts'} {name} 2> /dev/null")
-    os.remove(name+".ts")
 #=PLATFORMS=====================================================================
 def getvivo(url):
     html = requests.get(url).text
@@ -98,6 +93,11 @@ def getvoe(url):
     s = re.search("""constsources={"hls":.*};""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().split(";")[0].replace("constsources=", "").replace(",}", "}")
     j = json.loads(s)
     return(j["hls"])
+
+def getvidoza(url):
+    r = requests.get(url)
+    c = re.search("""<sourcesrc=".*"type='video/mp4'>""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().replace('<sourcesrc="', "").replace(""""type='video/mp4'>""", "")
+    return(c)
 #===============================================================================
 def getvideo(url):
     if("vivo.sx" in url or "vivo.st" in url):
@@ -106,6 +106,8 @@ def getvideo(url):
     #    return(("OK", getsendfox(url), "sendfox.org"))
     elif("voe.sx" in url):
         return(("OK", getvoe(url), "voe.sx", "m3u8"))
+    elif("vidoza.net" in url):
+        return(("OK", getvidoza(url), "vidoza.net", "mp4"))
     else:
         return(("ERR", "", ""))
 
