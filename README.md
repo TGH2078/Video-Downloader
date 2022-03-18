@@ -17,3 +17,5 @@ python3 main.py -f example-dllist.txt ./video-folder
 vivo.sx
 
 voe.sx
+
+vidoza.net
