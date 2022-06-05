@@ -98,6 +98,11 @@ def getvidoza(url):
     r = requests.get(url)
     c = re.search("""<sourcesrc=".*"type='video/mp4'>""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().replace('<sourcesrc="', "").replace(""""type='video/mp4'>""", "")
     return(c)
+
+def getvupload(url):
+    r = requests.get(url).text
+    t = re.search('sources:\[\{src\: \".*', r.replace("\r", "").replace("\n", "").replace("\t", "")).group().split(", type:")[0].replace('sources:[{src: "', "")[0:-1]
+    return(t)
 #===============================================================================
 def getvideo(url):
     if("vivo.sx" in url or "vivo.st" in url):
@@ -108,6 +113,8 @@ def getvideo(url):
         return(("OK", getvoe(url), "voe.sx", "m3u8"))
     elif("vidoza.net" in url):
         return(("OK", getvidoza(url), "vidoza.net", "mp4"))
+#    elif("vupload.com" in url):
+#        return(("OK", getvupload(url), "vupload.com", "m3u8"))
     else:
         return(("ERR", "", ""))
 
