@@ -37,13 +37,7 @@ def dlvid(url, name, pl, si):
         1/0
 
 def dlm3u8(url, name, pf, si):
-    m3upl = requests.get(url).text.split("\n")
-    pl = ""
-    for a in m3upl:
-        if("https://"in a):
-            pl = a
-            break
-    seg = requests.get(pl).text
+    seg = requests.get(url).text
     segl = m3u8.loads(seg)
     pl = []
     urla = "/".join(url.split("/")[0:-1])
@@ -92,7 +86,8 @@ def getvoe(url):
     r = requests.get(url)
     s = re.search("""constsources={"hls":.*};""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().split(";")[0].replace("constsources=", "").replace(",}", "}")
     j = json.loads(s)
-    return(j["hls"])
+    ur = m3u8.load(j["hls"]).playlists[0].uri
+    return(ur)
 
 def getvidoza(url):
     r = requests.get(url)
@@ -102,7 +97,8 @@ def getvidoza(url):
 def getvupload(url):
     r = requests.get(url).text
     t = re.search('sources:\[\{src\: \".*', r.replace("\r", "").replace("\n", "").replace("\t", "")).group().split(", type:")[0].replace('sources:[{src: "', "")[0:-1]
-    return(t)
+    ur = m3u8.load(t).playlists[1].uri
+    return(ur)
 #===============================================================================
 def getvideo(url):
     if("vivo.sx" in url or "vivo.st" in url):
@@ -113,8 +109,8 @@ def getvideo(url):
         return(("OK", getvoe(url), "voe.sx", "m3u8"))
     elif("vidoza.net" in url):
         return(("OK", getvidoza(url), "vidoza.net", "mp4"))
-#    elif("vupload.com" in url):
-#        return(("OK", getvupload(url), "vupload.com", "m3u8"))
+    elif("vupload.com" in url):
+        return(("OK", getvupload(url), "vupload.com", "m3u8"))
     else:
         return(("ERR", "", ""))
 
