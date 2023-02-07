@@ -1,63 +1,31 @@
 import requests
 import re
 from urllib.parse import unquote
+from urllib.parse import urlparse
 import sys
 import time
 import os
 import json
 import m3u8
-def dlvid(url, name, pl, si):
-    chunk_size = 1024*20
-    count = 0
-    startb = 0
-    try:
-        fr = open(name+".part", "rb")
-        fw = open(name, "wb")
-        while(True):
-            t = fw.write(fr.read(chunk_size))
-            count += t
-            if(t==0):
-                startb = count
-                break
-    except:
-        fw = open(name, "wb")
-    try:
-        r = requests.get(url, stream=True, timeout=10, headers={"Range":"bytes="+str(startb)+"-"})
-        size = int(r.headers['Content-length'])+startb
-        for chunk in r.iter_content(chunk_size=chunk_size):
-            count += fw.write(chunk)
-            print("\033[1A" + name + " | " + "[" + "="*round(count/((int(size))/(si))) + ">" + " "*(si-round(count/((int(size))/(si)))) + "] " + ("   " + str(round(count/((int(size))/(100)))))[-3:] + "% | " + (" "*5 + str(round(((count/1024)/1024)*1000)/1000).split(".")[0] + "," + (str(round(((count/1024)/1024)*1000)/1000).split(".")[1] + "000")[0:3] + "/" + str(round(((size/1024)/1024)*1000)/1000).split(".")[0] + "," + (str(round(((size/1024)/1024)*1000)/1000).split(".")[1] + "000")[0:3])[-15:] + " MB | " + pl)
-        fw.close()
-        try:
-            os.remove(name+".part")
-        except:
-            pass
-    except:
-        os.rename(name, name+".part")
-        1/0
+import subprocess
 
-def dlm3u8(url, name, pf, si):
-    seg = requests.get(url).text
-    segl = m3u8.loads(seg)
-    pl = []
-    urla = "/".join(url.split("/")[0:-1])
-    for a in segl.segments:
-        pl.append(urla+"/"+a.uri)
+downloader = "yt-dlp"
 
-    fw = open(name+".ts", "wb")
+def execute(cmd):
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        yield stdout_line
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd)
 
-    pcoun = 0
-    pllen = len(pl)
-    for a in pl:
-        chunk_size = 1024*20
-        count = 0
-        startb = 0
-        pcoun += 1
-        r = requests.get(a, stream=True, timeout=10, headers={"Range":"bytes="+str(startb)+"-"})
-        size = int(r.headers['Content-length'])+startb
-        for chunk in r.iter_content(chunk_size=chunk_size):
-            count += fw.write(chunk)
-            print("\033[1A" + name + " | " + "[" + "="*round(count/((int(size))/(si))) + ">" + " "*(si-round(count/((int(size))/(si)))) + "] " + " | " + ("   " + str(round(pcoun/((pllen)/(100)))))[-3:] + "% | " + str(pcoun)+"/"+str(pllen)+ " | " + pf)
+def dlvid(url, name, pf, si):
+    for path in execute([downloader, "-o", name, url]):
+        k = path.replace("~", "").replace("   ", "  ").replace("  ", " ").split(" ")
+        if(k[0]=="[download]" and "%" in k[1]):
+            prog = float(k[1].replace("%", ""))
+            print("\033[1A" + name + " | " + "[" + "="*round((prog/100)*si) + ">" + " "*(si-round((prog/100)*si)) + "] " + ("   " + str(round(prog)))[-3:] + "% | " + k[3] + " | " + pf)
 #=PLATFORMS=====================================================================
 def getvivo(url):
     html = requests.get(url).text
@@ -84,10 +52,12 @@ def getsendfox(url):
 
 def getvoe(url):
     r = requests.get(url)
-    s = re.search("""constsources={"hls":.*};""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().split(";")[0].replace("constsources=", "").replace(",}", "}")
+    s = re.search("""constsources={'hls':.*};""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().split(";")[0].replace("constsources=", "").replace(",}", "}").replace("'", '"')
+  #  print(s)
     j = json.loads(s)
-    ur = m3u8.load(j["hls"]).playlists[0].uri
-    return(ur)
+#    ur = m3u8.load(j["hls"]).playlists[0].uri
+#    return("https://"+urlparse(j["hls"]).netloc+"/"+ur)
+    return(j["hls"])
 
 def getvidoza(url):
     r = requests.get(url)
@@ -125,7 +95,7 @@ def downloadvideo(url, output):
             if(stream[3]=="mp4"):
                 dlvid(stream[1], output, stream[2], 50)
             elif(stream[3]=="m3u8"):
-                dlm3u8(stream[1], output, stream[2], 50)
+                dlvid(stream[1], output, stream[2], 50)
             break
         except KeyboardInterrupt:
             print("\033[2KKeyboardInterrupt")
@@ -143,19 +113,20 @@ def dlfile(file, folder):
     except KeyboardInterrupt:
         print("\033[2KKeyboardInterrupt")
 
-i = sys.argv[1:]
-mf = False
-file = False
-if("--help" in i or "-h" in i):
-    print("Download a single file with [<url> <output-file>]\nDownload from a Download-List with [-f dllist.txt ./video-folder]")
-    exit()
-for a in i:
-    if(a=="-f"):
-        mf = True
-    elif(mf):
-        file = a
-        mf = False
-if(not file==False):
-    dlfile(file, i[-1])
-else:
-    downloadvideo(i[-2], i[-1])
+if __name__=="__main__":
+    i = sys.argv[1:]
+    mf = False
+    file = False
+    if("--help" in i or "-h" in i):
+        print("Download a single file with [<url> <output-file>]\nDownload from a Download-List with [-f dllist.txt ./video-folder]")
+        exit()
+    for a in i:
+        if(a=="-f"):
+            mf = True
+        elif(mf):
+            file = a
+            mf = False
+    if(not file==False):
+        dlfile(file, i[-1])
+    else:
+        downloadvideo(i[-2], i[-1])
