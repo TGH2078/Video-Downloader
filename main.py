@@ -52,8 +52,7 @@ def getsendfox(url):
 
 def getvoe(url):
     r = requests.get(url)
-    s = re.search("""constsources={'hls':.*};""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().split(";")[0].replace("constsources=", "").replace(",}", "}").replace("'", '"')
-  #  print(s)
+    s = re.search("""varsources={'hls':.*};""", r.text.replace("\n", "").replace("\r", "").replace("\t", "").replace(" ", "")).group().split(";")[0].replace("varsources=", "").replace(",}", "}").replace("'", '"')
     j = json.loads(s)
 #    ur = m3u8.load(j["hls"]).playlists[0].uri
 #    return("https://"+urlparse(j["hls"]).netloc+"/"+ur)
